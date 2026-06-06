@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Velouré — لوحة التحكم</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .admin-page { display: none; }
+        .admin-page.active { display: block; }
+        .admin-nav-item { cursor: pointer; }
+        .img-preview { width: 100px; height: 130px; object-fit: cover; border-radius: 4px; background: var(--secondary); }
+        .size-stock-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .size-stock-row input { width: 80px; }
+        .color-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .color-row input[type="color"] { width: 40px; height: 40px; padding: 0; border: none; cursor: pointer; }
+        .orders-table { width: 100%; }
+        .status-select { padding: 4px 8px; border: 1px solid var(--gray-300); font-size: 0.8rem; }
+        .admin-mobile-toggle { display: none; position: fixed; top: 16px; right: 16px; z-index: 200; background: var(--primary); color: white; border: none; padding: 10px 16px; font-size: 1.2rem; cursor: pointer; border-radius: var(--radius-sm); }
+        .chart-bar { height: 30px; background: var(--gold); border-radius: 4px; min-width: 4px; transition: var(--transition); }
+        .chart-container { display: flex; align-items: flex-end; gap: 8px; height: 200px; padding: 16px 0; }
+        .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .chart-col .chart-bar { width: 100%; }
+        .chart-label { font-size: 0.65rem; color: var(--gray-500); text-align: center; }
+        .chart-value { font-size: 0.7rem; font-weight: 600; }
+        .coupon-card { background: var(--white); padding: 20px; border: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .admin-product-card { display: flex; align-items: center; gap: 12px; }
+        .admin-product-card img { width: 50px; height: 65px; object-fit: cover; border-radius: 4px; background: var(--secondary); }
+        @media (max-width: 768px) {
+            .admin-sidebar { transform: translateX(100%); transition: var(--transition); }
+            .admin-sidebar.open { transform: translateX(0); }
+            .admin-main { margin-right: 0; }
+            .admin-mobile-toggle { display: block; }
+        }
+        .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 768px) { .analytics-grid { grid-template-columns: 1fr; } }
+        .admin-chart-card { background: var(--white); padding: 24px; border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+        .admin-chart-card h3 { font-size: 1rem; margin-bottom: 16px; }
+        html[dir="rtl"] .admin-sidebar { left: auto; right: 0; }
+        html[dir="rtl"] .admin-main { margin-left: 0; margin-right: 260px; }
+        html[dir="rtl"] .admin-mobile-toggle { left: auto; right: 16px; }
+        html[dir="rtl"] .admin-table th { text-align: right; }
+        @media (max-width: 768px) { html[dir="rtl"] .admin-main { margin-right: 0; } }
+        .currency-badge { background: var(--gold); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; margin-right: 8px; }
+    </style>
+</head>
+<body class="admin-body">
+
+<button class="admin-mobile-toggle" onclick="document.querySelector('.admin-sidebar').classList.toggle('open')">☰</button>
+
+<aside class="admin-sidebar">
+    <div class="logo" style="font-size:1.5rem;">Velouré<span>.</span></div>
+    <span style="display:block;font-size:0.65rem;letter-spacing:3px;color:var(--gray-500);margin-bottom:40px;margin-top:-8px;">لوحة التحكم</span>
+    <div class="admin-nav-item active" data-admin-page="dashboard">
+        <span>📊</span> الإحصائيات
+    </div>
+    <div class="admin-nav-item" data-admin-page="products">
+        <span>👗</span> المنتجات
+    </div>
+    <div class="admin-nav-item" data-admin-page="add-product">
+        <span>➕</span> إضافة منتج
+    </div>
+    <div class="admin-nav-item" data-admin-page="orders">
+        <span>📦</span> الطلبات
+    </div>
+    <div class="admin-nav-item" data-admin-page="customers">
+        <span>👤</span> العملاء
+    </div>
+    <div class="admin-nav-item" data-admin-page="coupons">
+        <span>🏷️</span> كوبونات
+    </div>
+    <div class="admin-nav-item" data-admin-page="analytics">
+        <span>📈</span> التحليلات
+    </div>
+    <div class="admin-nav-item" data-admin-page="settings">
+        <span>⚙️</span> الإعدادات
+    </div>
+    <hr style="border-color:var(--gray-800);margin:20px 0;">
+    <a href="../index.html" style="display:block;padding:12px 16px;color:var(--gray-400);font-size:0.85rem;">← العودة للمتجر</a>
+</aside>
+
+<main class="admin-main">
+
+<div class="admin-header" style="padding-right:0;">
+    <h1 id="admin-page-title">الإحصائيات</h1>
+    <span style="color:var(--gray-500);font-size:0.85rem;">اليوم: <span id="admin-date"></span></span>
+</div>
+
+<div class="admin-page active" id="admin-page-dashboard">
+    <div class="admin-stats" id="admin-stats"></div>
+    <div style="background:var(--white);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow-sm);">
+        <h3 style="margin-bottom:16px;">آخر الطلبات</h3>
+        <div id="recent-orders-admin"></div>
+    </div>
+</div>
+
+<div class="admin-page" id="admin-page-products">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h2>جميع المنتجات</h2>
+        <button class="btn btn-primary btn-sm" onclick="showAdminPage('add-product')">+ إضافة منتج</button>
+    </div>
+    <table class="admin-table" id="admin-products-table">
+        <thead><tr><th>المنتج</th><th>التصنيف</th><th>السعر</th><th>المخزون</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+        <tbody id="admin-products-body"></tbody>
+    </table>
+</div>
+
+<div class="admin-page" id="admin-page-add-product">
+    <div class="admin-form" style="max-width:700px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <h2 id="add-product-title">إضافة منتج جديد</h2>
+            <span id="edit-product-id" style="font-size:0.8rem;color:var(--gray-400);display:none;"></span>
+        </div>
+        <div class="form-group">
+            <label>اسم المنتج <span style="color:#dc2626;">*</span></label>
+            <input type="text" id="ap-name" placeholder="اسم المنتج">
+        </div>
+        <div class="form-group">
+            <label>التصنيف <span style="color:#dc2626;">*</span></label>
+            <select id="ap-category">
+                <option value="lingerie">لانجري</option>
+                <option value="robes">أرواب</option>
+                <option value="sets">أطقم</option>
+                <option value="corsets">كورسيهات</option>
+                <option value="nightwear">ملابس نوم</option>
+                <option value="accessories">إكسسوارات</option>
+                <option value="outerwear">ملابس خارجية</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>السعر ($) <span style="color:#dc2626;">*</span></label>
+                <input type="number" id="ap-price" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>السعر الأصلي ($) - اختياري</label>
+                <input type="number" id="ap-originalPrice" step="0.01" min="0" placeholder="0.00">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>الوصف <span style="color:#dc2626;">*</span></label>
+            <textarea id="ap-description" rows="4" placeholder="وصف المنتج"></textarea>
+        </div>
+        <div class="form-group">
+            <label>الألوان (مفصولة بفواصل) <span style="color:#dc2626;">*</span></label>
+            <input type="text" id="ap-colors" placeholder="أسود، بيج، أحمر" value="أسود">
+        </div>
+        <div class="form-group">
+            <label>المخزون (عدد القطع) <span style="color:#dc2626;">*</span></label>
+            <input type="number" id="ap-stock" min="0" value="50" placeholder="50">
+        </div>
+        <div class="form-group">
+            <label>صور المنتج</label>
+            <input type="file" id="ap-images" accept="image/*" multiple>
+            <div style="display:flex;gap:8px;margin-top:8px;" id="ap-image-previews"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label><input type="checkbox" id="ap-isNew"> جديد</label>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="ap-isHot"> رائج</label>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="ap-isSale"> تخفيض</label>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="ap-featured" checked> مميز</label>
+            </div>
+        </div>
+        <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary" onclick="Admin.saveProduct()" style="flex:1;justify-content:center;" id="ap-submit-btn">إضافة المنتج</button>
+            <button class="btn btn-outline" style="border-color:var(--gray-300);color:var(--gray-600);flex:1;justify-content:center;display:none;" id="ap-cancel-edit" onclick="Admin.cancelEdit()">إلغاء التعديل</button>
+        </div>
+    </div>
+</div>
+
+<div class="admin-page" id="admin-page-orders">
+    <h2 style="margin-bottom:20px;">إدارة الطلبات</h2>
+    <table class="admin-table" id="admin-orders-table">
+        <thead><tr><th>رقم الطلب</th><th>العميل</th><th>المنتجات</th><th>المجموع</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+        <tbody id="admin-orders-body"></tbody>
+    </table>
+</div>
+
+<div class="admin-page" id="admin-page-customers">
+    <h2 style="margin-bottom:20px;">إدارة العملاء</h2>
+    <table class="admin-table">
+        <thead><tr><th>الاسم</th><th>البريد</th><th>الطلبات</th><th>إجمالي الإنفاق</th><th>آخر طلب</th></tr></thead>
+        <tbody id="admin-customers-body"></tbody>
+    </table>
+</div>
+
+<div class="admin-page" id="admin-page-coupons">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h2>كوبونات الخصم</h2>
+        <button class="btn btn-primary btn-sm" onclick="Admin.showAddCoupon()">+ إضافة كوبون</button>
+    </div>
+    <div id="admin-coupons-list"></div>
+    <div id="admin-add-coupon-form" style="display:none;" class="admin-form" style="max-width:500px;margin-top:20px;">
+        <h3 style="margin-bottom:16px;">كوبون جديد</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>الكود</label>
+                <input type="text" id="ac-code" placeholder="مثال: SUMMER30">
+            </div>
+            <div class="form-group">
+                <label>قيمة الخصم</label>
+                <input type="number" id="ac-discount" min="0" placeholder="30">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>النوع</label>
+                <select id="ac-type">
+                    <option value="percent">نسبة مئوية (%)</option>
+                    <option value="freeshipping">شحن مجاني</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>الحد الأدنى للطلب ($)</label>
+                <input type="number" id="ac-minAmount" min="0" placeholder="0">
+            </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="Admin.addCoupon()">حفظ الكوبون</button>
+    </div>
+</div>
+
+<div class="admin-page" id="admin-page-analytics">
+    <div class="admin-stats" id="analytics-stats"></div>
+    <div class="analytics-grid">
+        <div class="admin-chart-card">
+            <h3>الإيرادات (آخر 7 أيام)</h3>
+            <div class="chart-container" id="revenue-chart"></div>
+        </div>
+        <div class="admin-chart-card">
+            <h3>الطلبات (آخر 7 أيام)</h3>
+            <div class="chart-container" id="orders-chart"></div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-page" id="admin-page-settings">
+    <div class="admin-form" style="max-width:600px;">
+        <h2 style="margin-bottom:24px;">إعدادات المتجر</h2>
+        <div class="form-group">
+            <label>اسم المتجر</label>
+            <input type="text" id="as-storeName" value="Velouré">
+        </div>
+        <div class="form-group">
+            <label>الشعار</label>
+            <input type="text" id="as-tagline" value="لانجري وأزياء فاخرة">
+        </div>
+        <div class="form-group">
+            <label>العملة الأساسية</label>
+            <select id="as-currency">
+                <option value="SYP">ليرة سورية (ل.س)</option>
+                <option value="USD">دولار أمريكي ($)</option>
+                <option value="EUR">يورو (€)</option>
+                <option value="GBP">جنيه إسترليني (£)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>نسبة الضريبة (%)</label>
+            <input type="number" id="as-taxRate" step="0.1" value="8">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>الشحن العادي ($)</label>
+                <input type="number" id="as-shipping-standard" step="0.01" value="9.99">
+            </div>
+            <div class="form-group">
+                <label>الشحن السريع ($)</label>
+                <input type="number" id="as-shipping-express" step="0.01" value="19.99">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="Admin.saveSettings()" style="width:100%;justify-content:center;">حفظ الإعدادات</button>
+    </div>
+</div>
+
+</main>
+
+<script>
+const VeloureData = {
+    products: [
+        { id: 1, name: 'بدي ليس دريم', nameAr: 'بدي ليس دريم', category: 'lingerie', categoryAr: 'لانجري', price: 89.00, originalPrice: 110.00, description: 'Exquisite lace bodysuit crafted from the finest French lace.', descriptionAr: 'بدي دانتيل فاخر مصنوع من أفخر أنواع الدانتيل الفرنسي.', colors: ['أسود','عاجي','بيج'], colorHex: ['#0a0a0a','#f5f0e8','#f5c6d0'], stock: 180, images: ['product1.jpg','product1-2.jpg','product1-3.jpg'], rating: 4.8, reviews: 124, isNew: true, isHot: false, isSale: true, featured: true },
+        { id: 2, name: 'روب حرير شارموز', nameAr: 'روب حرير شارموز', category: 'robes', categoryAr: 'أرواب', price: 149.00, originalPrice: null, description: 'Luxurious silk charmeuse robe with a delicate satin trim.', descriptionAr: 'روب حرير شارموز فاخر مع حواف ساتان رقيقة.', colors: ['أسود','شمبانيا','نبيذي'], colorHex: ['#0a0a0a','#f7e7ce','#800020'], stock: 110, images: ['product2.jpg','product2-2.jpg','product2-3.jpg'], rating: 4.9, reviews: 89, isNew: false, isHot: true, isSale: false, featured: true },
+        { id: 3, name: 'طقم منتصف الليل', nameAr: 'طقم منتصف الليل', category: 'sets', categoryAr: 'طقم', price: 129.00, originalPrice: 169.00, description: 'A captivating three-piece set with intricate floral lace.', descriptionAr: 'طقم ثلاثي آسر مع دانتيل زهري معقد.', colors: ['أسود','أحمر','كحلي'], colorHex: ['#0a0a0a','#dc2626','#1e3a5f'], stock: 90, images: ['product3.jpg','product3-2.jpg','product3-3.jpg'], rating: 4.7, reviews: 156, isNew: true, isHot: false, isSale: true, featured: true },
+        { id: 4, name: 'كورسيه فيلفت', nameAr: 'كورسيه فيلفت', category: 'corsets', categoryAr: 'كورسيهات', price: 109.00, originalPrice: null, description: 'Premium velvet corset with steel boning.', descriptionAr: 'كورسيه فيلفت ممتاز مع دعائم فولاذية.', colors: ['أسود','زمردي','أزرق ملكي'], colorHex: ['#0a0a0a','#046307','#1e40af'], stock: 70, images: ['product4.jpg','product4-2.jpg','product4-3.jpg'], rating: 4.6, reviews: 98, isNew: false, isHot: true, isSale: false, featured: false },
+        { id: 5, name: 'كارديغان كشمير', nameAr: 'كارديغان كشمير', category: 'outerwear', categoryAr: 'ملابس خارجية', price: 199.00, originalPrice: 259.00, description: 'Ultra-soft cashmere wrap cardigan.', descriptionAr: 'كارديغان كشمير ناعم جداً.', colors: ['عاجي','جمل','أسود'], colorHex: ['#f5f0e8','#c19a6b','#0a0a0a'], stock: 55, images: ['product5.jpg','product5-2.jpg','product5-3.jpg'], rating: 4.9, reviews: 67, isNew: false, isHot: false, isSale: true, featured: false },
+        { id: 6, name: 'ثوب نوم ساتان', nameAr: 'ثوب نوم ساتان', category: 'nightwear', categoryAr: 'ملابس نوم', price: 79.00, originalPrice: null, description: 'Silky satin chemise with delicate lace trim.', descriptionAr: 'قميص نوم ساتان حريري.', colors: ['أسود','وردي','لافندر'], colorHex: ['#0a0a0a','#f9a8d4','#c4b5fd'], stock: 150, images: ['product6.jpg','product6-2.jpg','product6-3.jpg'], rating: 4.7, reviews: 203, isNew: true, isHot: false, isSale: false, featured: true },
+        { id: 7, name: 'براليت دانتيل', nameAr: 'براليت دانتيل', category: 'lingerie', categoryAr: 'لانجري', price: 59.00, originalPrice: null, description: 'Intricately patterned lace bralette.', descriptionAr: 'براليت دانتيل بنقوش معقدة.', colors: ['أسود','أبيض','بشرة'], colorHex: ['#0a0a0a','#ffffff','#e8c5a5'], stock: 220, images: ['product7.jpg','product7-2.jpg','product7-3.jpg'], rating: 4.5, reviews: 312, isNew: false, isHot: true, isSale: false, featured: true },
+        { id: 8, name: 'حزام رباط عالي الخصر', nameAr: 'حزام رباط عالي الخصر', category: 'accessories', categoryAr: 'إكسسوارات', price: 69.00, originalPrice: 89.00, description: 'A statement suspender belt in luxury satin.', descriptionAr: 'حزام رباط أيقوني من الساتان الفاخر.', colors: ['أسود','أحمر'], colorHex: ['#0a0a0a','#dc2626'], stock: 130, images: ['product8.jpg','product8-2.jpg','product8-3.jpg'], rating: 4.6, reviews: 78, isNew: false, isHot: false, isSale: true, featured: false }
+    ],
+    coupons: [
+        { code: 'WELCOME20', discount: 20, type: 'percent', minAmount: 0, isActive: true },
+        { code: 'VIP30', discount: 30, type: 'percent', minAmount: 200, isActive: true },
+        { code: 'FREESHIP', discount: 0, type: 'freeshipping', minAmount: 150, isActive: true }
+    ],
+    currencies: [
+        { code: 'SYP', symbol: 'ل.س', name: 'ليرة سورية', rate: 13000 },
+        { code: 'USD', symbol: '$', name: 'دولار أمريكي', rate: 1 },
+        { code: 'EUR', symbol: '€', name: 'يورو', rate: 0.92 },
+        { code: 'GBP', symbol: '£', name: 'جنيه إسترليني', rate: 0.79 }
+    ],
+    settings: {
+        storeName: 'Velouré', tagline: 'لانجري وأزياء فاخرة', taglineAr: 'لانجري وأزياء فاخرة',
+        phone: '0944975460',
+        address: 'حلب، سوريا',
+        social: { instagram: '#', facebook: '#', twitter: '#', pinterest: '#' },
+        shipping: { standard: 9.99, express: 19.99, free: 0 },
+        taxRate: 0.08
+    }
+};
+
+function getOrders() { try { return JSON.parse(localStorage.getItem('veloure_orders')) || []; } catch { return []; } }
+function saveOrders(o) { localStorage.setItem('veloure_orders', JSON.stringify(o)); }
+
+function loadProducts() { try { return JSON.parse(localStorage.getItem('veloure_products')) || []; } catch { return []; } }
+function saveProducts(p) { localStorage.setItem('veloure_products', JSON.stringify(p)); }
+
+// Merge hardcoded products with localStorage products (localStorage wins)
+const savedProducts = loadProducts();
+const mergedProducts = VeloureData.products.map(p => {
+    const saved = savedProducts.find(s => s.id === p.id);
+    return saved || p;
+});
+savedProducts.forEach(p => {
+    if (!mergedProducts.find(m => m.id === p.id)) mergedProducts.push(p);
+});
+VeloureData.products = mergedProducts;
+
+let productIdCounter = Math.max(...VeloureData.products.map(p => p.id), 0) + 1;
+
+const Admin = {
+    currentPage: 'dashboard',
+    init() {
+        document.getElementById('admin-date').textContent = new Date().toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.querySelectorAll('.admin-nav-item[data-admin-page]').forEach(item => {
+            item.addEventListener('click', () => { showAdminPage(item.dataset.adminPage); });
+        });
+        this.loadImagePreviews();
+        this.showDashboard();
+    },
+
+    formatPrice(amount) {
+        return Math.round(amount * 13000).toLocaleString('ar-SA') + ' ل.س';
+    },
+
+    showDashboard() {
+        const stats = this.getStats();
+        document.getElementById('admin-stats').innerHTML = `
+            <div class="admin-stat"><h3>إجمالي الإيرادات</h3><div class="value">${this.formatPrice(stats.totalRevenue)}</div></div>
+            <div class="admin-stat"><h3>الطلبات</h3><div class="value">${stats.totalOrders}</div></div>
+            <div class="admin-stat"><h3>قيد الانتظار</h3><div class="value">${stats.pendingOrders}</div></div>
+            <div class="admin-stat"><h3>المنتجات</h3><div class="value">${stats.totalProducts}</div></div>
+        `;
+        this.renderRecentOrders();
+    },
+
+    getStats() {
+        const orders = getOrders();
+        return {
+            totalRevenue: orders.reduce((s, o) => s + o.total, 0),
+            totalOrders: orders.length,
+            pendingOrders: orders.filter(o => o.status === 'confirmed' || o.status === 'pending').length,
+            totalProducts: VeloureData.products.length
+        };
+    },
+
+    renderRecentOrders() {
+        const orders = getOrders().slice(0, 5);
+        const container = document.getElementById('recent-orders-admin');
+        if (!orders.length) { container.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:32px;">لا توجد طلبات بعد</p>'; return; }
+        container.innerHTML = `<table class="admin-table"><thead><tr><th>الطلب</th><th>العميل</th><th>المجموع</th><th>الحالة</th></tr></thead><tbody>
+            ${orders.map(o => `<tr><td>${o.id}</td><td>${o.customer.name}</td><td>${this.formatPrice(o.total)}</td><td><span class="order-status ${o.status}">${o.status}</span></td></tr>`).join('')}
+        </tbody></table>`;
+    },
+
+    renderProducts() {
+        const tbody = document.getElementById('admin-products-body');
+            tbody.innerHTML = VeloureData.products.map(p => {
+            const totalStock = typeof p.stock === 'object' ? Object.values(p.stock).reduce((a, b) => a + b, 0) : (p.stock || 0);
+            const imgSrc = p.images && p.images[0] && p.images[0].startsWith('data:') ? p.images[0] : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='65'%3E%3Crect fill='%23c9a96e' width='50' height='65'/%3E%3C/svg%3E";
+            return `<tr>
+                <td><div class="admin-product-card"><img src="${imgSrc}" alt="" style="width:50px;height:65px;object-fit:cover;"><div><div style="font-weight:600;">${p.nameAr}</div><div style="font-size:0.75rem;color:var(--gray-400);">ID: ${p.id}</div></div></div></td>
+                <td>${p.categoryAr}</td>
+                <td>${this.formatPrice(p.price)}</td>
+                <td>${totalStock}</td>
+                <td>${p.isNew ? '<span class="order-status confirmed">جديد</span>' : '<span class="order-status delivered">نشط</span>'}</td>
+                <td><button class="btn btn-sm btn-primary" onclick="Admin.editProduct(${p.id})" style="margin-left:4px;">تعديل</button><button class="btn btn-sm btn-danger" onclick="Admin.deleteProduct(${p.id})">حذف</button></td>
+            </tr>`;
+        }).join('');
+    },
+
+    deleteProduct(id) {
+        if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
+        VeloureData.products = VeloureData.products.filter(p => p.id !== id);
+        this.renderProducts(); saveProducts(VeloureData.products);
+        AppShowToast('تم حذف المنتج');
+    },
+
+    editingId: null,
+    uploadedImages: [],
+
+    saveProduct() {
+        const nameAr = document.getElementById('ap-name').value.trim();
+        const category = document.getElementById('ap-category').value;
+        const price = parseFloat(document.getElementById('ap-price').value);
+        const originalPrice = parseFloat(document.getElementById('ap-originalPrice').value) || null;
+        const descriptionAr = document.getElementById('ap-description').value.trim();
+        const colorsStr = document.getElementById('ap-colors').value.trim();
+        const stock = parseInt(document.getElementById('ap-stock').value) || 0;
+        const isNew = document.getElementById('ap-isNew').checked;
+        const isHot = document.getElementById('ap-isHot').checked;
+        const isSale = document.getElementById('ap-isSale').checked;
+        const featured = document.getElementById('ap-featured').checked;
+        if (!nameAr || !price || !descriptionAr || !colorsStr) { AppShowToast('الرجاء تعبئة جميع الحقول المطلوبة', 'error'); return; }
+        const colors = colorsStr.split(',').map(c => c.trim()).filter(Boolean);
+        const colorHex = colors.map(c => {
+            const map = { 'أسود': '#0a0a0a', 'أبيض': '#ffffff', 'أحمر': '#dc2626', 'عاجي': '#f5f0e8', 'بيج': '#f5c6d0', 'شمبانيا': '#f7e7ce', 'نبيذي': '#800020', 'كحلي': '#1e3a5f', 'زمردي': '#046307', 'أزرق ملكي': '#1e40af', 'وردي': '#f9a8d4', 'لافندر': '#c4b5fd', 'بشرة': '#e8c5a5', 'جمل': '#c19a6b', 'ذهبي': '#c9a96e', 'بنفسجي': '#7c3aed', 'نيلي': '#4f46e5', 'موف': '#a855f7' };
+            return map[c.trim()] || '#0a0a0a';
+        });
+        const images = this.uploadedImages.length ? this.uploadedImages : ['placeholder'];
+        const catMap = { 'lingerie': 'لانجري', 'robes': 'أرواب', 'sets': 'أطقم', 'corsets': 'كورسيهات', 'nightwear': 'ملابس نوم', 'accessories': 'إكسسوارات', 'outerwear': 'ملابس خارجية' };
+
+        if (this.editingId) {
+            const idx = VeloureData.products.findIndex(p => p.id === this.editingId);
+            if (idx > -1) {
+                VeloureData.products[idx] = {
+                    ...VeloureData.products[idx],
+                    nameAr, name: nameAr, category, categoryAr: catMap[category],
+                    price, originalPrice, description: descriptionAr, descriptionAr,
+                    colors, colorHex, stock,
+                    images: images.length > 1 || (images.length === 1 && images[0] !== 'placeholder') ? images : VeloureData.products[idx].images,
+                    isNew, isHot, isSale, featured
+                };
+            }
+            AppShowToast(`تم تعديل المنتج "${nameAr}" بنجاح!`, 'success'); saveProducts(VeloureData.products);
+            this.cancelEdit();
+        } else {
+            const product = {
+                id: productIdCounter++, name: nameAr, nameAr, category, categoryAr: catMap[category],
+                price, originalPrice, description: descriptionAr, descriptionAr,
+                colors, colorHex, stock, images,
+                rating: 0, reviews: 0, isNew, isHot, isSale, featured
+            };
+            VeloureData.products.push(product);
+            AppShowToast(`تمت إضافة المنتج "${nameAr}" بنجاح!`, 'success'); saveProducts(VeloureData.products);
+        }
+
+        document.querySelectorAll('#admin-page-add-product input, #admin-page-add-product textarea').forEach(el => { if (el.type !== 'checkbox' && el.type !== 'file') el.value = ''; });
+        document.querySelectorAll('#admin-page-add-product input[type="checkbox"]').forEach(el => el.checked = false);
+        document.getElementById('ap-featured').checked = true;
+        document.getElementById('ap-stock').value = '50';
+        document.getElementById('ap-colors').value = 'أسود';
+        document.getElementById('ap-image-previews').innerHTML = '';
+        this.uploadedImages = [];
+        this.renderProducts();
+        showAdminPage('products');
+    },
+
+    editProduct(id) {
+        const p = VeloureData.products.find(pr => pr.id === id);
+        if (!p) return;
+        this.editingId = id;
+        document.getElementById('ap-name').value = p.nameAr || '';
+        document.getElementById('ap-category').value = p.category || 'lingerie';
+        document.getElementById('ap-price').value = p.price || '';
+        document.getElementById('ap-originalPrice').value = p.originalPrice || '';
+        document.getElementById('ap-description').value = p.descriptionAr || '';
+        document.getElementById('ap-colors').value = p.colors ? p.colors.join('، ') : 'أسود';
+        const totalStock = typeof p.stock === 'object' ? Object.values(p.stock).reduce((a, b) => a + b, 0) : (p.stock || 0);
+        document.getElementById('ap-stock').value = totalStock;
+        document.getElementById('ap-isNew').checked = p.isNew || false;
+        document.getElementById('ap-isHot').checked = p.isHot || false;
+        document.getElementById('ap-isSale').checked = p.isSale || false;
+        document.getElementById('ap-featured').checked = p.featured || false;
+        document.getElementById('add-product-title').textContent = 'تعديل المنتج';
+        document.getElementById('ap-submit-btn').textContent = 'حفظ التعديلات';
+        document.getElementById('ap-cancel-edit').style.display = 'flex';
+        document.getElementById('edit-product-id').style.display = 'inline';
+        document.getElementById('edit-product-id').textContent = 'رقم: ' + id;
+        showAdminPage('add-product');
+    },
+
+    cancelEdit() {
+        this.editingId = null;
+        this.uploadedImages = [];
+        document.getElementById('add-product-title').textContent = 'إضافة منتج جديد';
+        document.getElementById('ap-submit-btn').textContent = 'إضافة المنتج';
+        document.getElementById('ap-cancel-edit').style.display = 'none';
+        document.getElementById('edit-product-id').style.display = 'none';
+        document.getElementById('ap-image-previews').innerHTML = '';
+        document.querySelectorAll('#admin-page-add-product input, #admin-page-add-product textarea').forEach(el => { if (el.type !== 'checkbox' && el.type !== 'file') el.value = ''; });
+        document.querySelectorAll('#admin-page-add-product input[type="checkbox"]').forEach(el => el.checked = false);
+        document.getElementById('ap-featured').checked = true;
+        document.getElementById('ap-stock').value = '50';
+        document.getElementById('ap-colors').value = 'أسود';
+    },
+
+    loadImagePreviews() {
+        document.getElementById('ap-images')?.addEventListener('change', function() {
+            const container = document.getElementById('ap-image-previews');
+            container.innerHTML = '';
+            Admin.uploadedImages = [];
+            const files = Array.from(this.files);
+            let loaded = 0;
+            files.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    Admin.uploadedImages[idx] = e.target.result;
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-preview';
+                    container.appendChild(img);
+                    loaded++;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    },
+
+    renderOrders() {
+        const orders = getOrders();
+        const tbody = document.getElementById('admin-orders-body');
+        const statusMap = { pending: 'قيد الانتظار', confirmed: 'مؤكد', shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي' };
+        if (!orders.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:40px;">لا توجد طلبات بعد</td></tr>'; return; }
+        tbody.innerHTML = orders.map(o => {
+            const itemCount = o.items.reduce((s, i) => s + i.quantity, 0);
+            return `<tr>
+                <td style="font-weight:600;font-size:0.8rem;">${o.id}</td>
+                <td>${o.customer.name}<br><span style="font-size:0.75rem;color:var(--gray-400);">${o.customer.phone || ''}</span></td>
+                <td>${itemCount} منتج</td>
+                <td style="font-weight:600;">${this.formatPrice(o.total)}</td>
+                <td><select class="status-select" onchange="Admin.updateOrderStatus('${o.id}', this.value)" style="background:${o.status === 'delivered' ? '#d1fae5' : o.status === 'shipped' ? '#e0e7ff' : o.status === 'confirmed' ? '#dbeafe' : o.status === 'cancelled' ? '#fee2e2' : '#fef3c7'};">
+                    <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>قيد الانتظار</option>
+                    <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>مؤكد</option>
+                    <option value="shipped" ${o.status === 'shipped' ? 'selected' : ''}>تم الشحن</option>
+                    <option value="delivered" ${o.status === 'delivered' ? 'selected' : ''}>تم التوصيل</option>
+                    <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>ملغي</option>
+                </select></td>
+                <td style="font-size:0.8rem;color:var(--gray-400);">${new Date(o.createdAt).toLocaleDateString('ar-SA')}</td>
+            </tr>`;
+        }).join('');
+    },
+
+    updateOrderStatus(orderId, status) {
+        const orders = getOrders();
+        const order = orders.find(o => o.id === orderId);
+        if (order) { order.status = status; order.updatedAt = new Date().toISOString(); saveOrders(orders); }
+        AppShowToast(`تم تحديث الطلب ${orderId} إلى ${status}`, 'success');
+    },
+
+    renderCustomers() {
+        const orders = getOrders();
+        const customerMap = {};
+        orders.forEach(o => {
+            const key = o.customer.phone || o.customer.name;
+            if (!customerMap[key]) customerMap[key] = { name: o.customer.name, phone: o.customer.phone || '', orders: 0, total: 0, lastOrder: o.createdAt };
+            customerMap[key].orders++;
+            customerMap[key].total += o.total;
+            if (new Date(o.createdAt) > new Date(customerMap[key].lastOrder)) customerMap[key].lastOrder = o.createdAt;
+        });
+        const tbody = document.getElementById('admin-customers-body');
+        const customers = Object.values(customerMap);
+        if (!customers.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:40px;">لا يوجد عملاء بعد</td></tr>'; return; }
+        tbody.innerHTML = customers.map(c => `<tr>
+            <td><div style="font-weight:600;">${c.name}</div></td>
+            <td>${c.phone}</td>
+            <td>${c.orders}</td>
+            <td style="font-weight:600;">${this.formatPrice(c.total)}</td>
+            <td style="font-size:0.8rem;color:var(--gray-400);">${new Date(c.lastOrder).toLocaleDateString('ar-SA')}</td>
+        </tr>`).join('');
+    },
+
+    renderCoupons() {
+        const container = document.getElementById('admin-coupons-list');
+        container.innerHTML = VeloureData.coupons.map(c => `
+            <div class="coupon-card">
+                <div>
+                    <div style="font-weight:700;font-size:1.1rem;letter-spacing:1px;">${c.code}</div>
+                    <div style="font-size:0.85rem;color:var(--gray-500);">${c.type === 'percent' ? c.discount + '% خصم' : 'شحن مجاني'} ${c.minAmount > 0 ? '• الحد الأدنى $' + c.minAmount : ''}</div>
+                </div>
+                <div>
+                    <span style="color:${c.isActive ? '#059669' : '#dc2626'};font-size:0.8rem;font-weight:600;">${c.isActive ? 'مفعل' : 'معطل'}</span>
+                    <button class="btn btn-sm btn-danger" style="margin-right:8px;" onclick="Admin.toggleCoupon('${c.code}')">${c.isActive ? 'تعطيل' : 'تفعيل'}</button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    toggleCoupon(code) {
+        const coupon = VeloureData.coupons.find(c => c.code === code);
+        if (coupon) { coupon.isActive = !coupon.isActive; this.renderCoupons(); AppShowToast(`الكوبون ${code} ${coupon.isActive ? 'مفعل' : 'معطل'}`); }
+    },
+
+    showAddCoupon() {
+        const form = document.getElementById('admin-add-coupon-form');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    },
+
+    addCoupon() {
+        const code = document.getElementById('ac-code').value.trim().toUpperCase();
+        const discount = parseInt(document.getElementById('ac-discount').value) || 0;
+        const type = document.getElementById('ac-type').value;
+        const minAmount = parseFloat(document.getElementById('ac-minAmount').value) || 0;
+        if (!code) { AppShowToast('الرجاء إدخال كود الكوبون', 'error'); return; }
+        if (VeloureData.coupons.find(c => c.code === code)) { AppShowToast('الكوبون موجود بالفعل', 'error'); return; }
+        VeloureData.coupons.push({ code, discount, type, minAmount, isActive: true });
+        this.renderCoupons();
+        document.getElementById('ac-code').value = '';
+        document.getElementById('ac-discount').value = '';
+        document.getElementById('ac-minAmount').value = '0';
+        document.getElementById('admin-add-coupon-form').style.display = 'none';
+        AppShowToast(`تم إنشاء الكوبون ${code}!`, 'success');
+    },
+
+    renderAnalytics() {
+        const orders = getOrders();
+        const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
+        const avgOrder = orders.length ? totalRevenue / orders.length : 0;
+        document.getElementById('analytics-stats').innerHTML = `
+            <div class="admin-stat"><h3>إجمالي الإيرادات</h3><div class="value">${this.formatPrice(totalRevenue)}</div><div class="change">↑ الإجمالي</div></div>
+            <div class="admin-stat"><h3>متوسط قيمة الطلب</h3><div class="value">${this.formatPrice(avgOrder)}</div></div>
+            <div class="admin-stat"><h3>إجمالي الطلبات</h3><div class="value">${orders.length}</div></div>
+            <div class="admin-stat"><h3>معدل التحويل</h3><div class="value">${orders.length > 0 ? '3.2%' : '0%'}</div></div>
+        `;
+        this.renderCharts();
+    },
+
+    renderCharts() {
+        const orders = getOrders();
+        const revenueChart = document.getElementById('revenue-chart');
+        const ordersChart = document.getElementById('orders-chart');
+        const days = 7;
+        const data = [];
+        const now = new Date();
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            const dayOrders = orders.filter(o => o.createdAt.split('T')[0] === dateStr);
+            data.push({
+                label: date.toLocaleDateString('ar-SA', { weekday: 'short' }),
+                revenue: dayOrders.reduce((s, o) => s + o.total, 0),
+                count: dayOrders.length
+            });
+        }
+        const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
+        const maxCount = Math.max(...data.map(d => d.count), 1);
+        revenueChart.innerHTML = data.map(d => `<div class="chart-col"><div class="chart-bar" style="height:${(d.revenue / maxRevenue) * 180}px;background:linear-gradient(to top, var(--gold), var(--gold-light));"></div><div class="chart-value">${this.formatPrice(d.revenue)}</div><div class="chart-label">${d.label}</div></div>`).join('');
+        ordersChart.innerHTML = data.map(d => `<div class="chart-col"><div class="chart-bar" style="height:${(d.count / maxCount) * 180}px;background:linear-gradient(to top, var(--primary), var(--gray-700));"></div><div class="chart-value">${d.count}</div><div class="chart-label">${d.label}</div></div>`).join('');
+    },
+
+    saveSettings() {
+        const s = VeloureData.settings;
+        s.storeName = document.getElementById('as-storeName').value || s.storeName;
+        s.tagline = document.getElementById('as-tagline').value || s.tagline;
+        s.taxRate = (parseFloat(document.getElementById('as-taxRate').value) || 8) / 100;
+        s.shipping.standard = parseFloat(document.getElementById('as-shipping-standard').value) || 9.99;
+        s.shipping.express = parseFloat(document.getElementById('as-shipping-express').value) || 19.99;
+        AppShowToast('تم حفظ الإعدادات!', 'success');
+    }
+};
+
+function showAdminPage(page) {
+    document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+    document.getElementById(`admin-page-${page}`)?.classList.add('active');
+    document.querySelectorAll('.admin-nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.admin-nav-item[data-admin-page="${page}"]`)?.classList.add('active');
+    document.querySelector('.admin-sidebar')?.classList.remove('open');
+    const titles = { dashboard: 'الإحصائيات', products: 'المنتجات', 'add-product': 'إضافة منتج', orders: 'الطلبات', customers: 'العملاء', coupons: 'الكوبونات', analytics: 'التحليلات', settings: 'الإعدادات' };
+    document.getElementById('admin-page-title').textContent = titles[page] || page;
+    Admin.currentPage = page;
+    if (page === 'dashboard') Admin.showDashboard();
+    else if (page === 'products') Admin.renderProducts();
+    else if (page === 'orders') Admin.renderOrders();
+    else if (page === 'customers') Admin.renderCustomers();
+    else if (page === 'coupons') Admin.renderCoupons();
+    else if (page === 'analytics') Admin.renderAnalytics();
+}
+
+function AppShowToast(message, type = 'info') {
+    let container = document.querySelector('.admin-toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        container.style.cssText = 'position:fixed;bottom:24px;left:24px;z-index:3000;display:flex;flex-direction:column;gap:8px;';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100px)'; toast.style.transition = 'all 0.3s ease'; }, 3000);
+    setTimeout(() => toast.remove(), 3300);
+}
+
+document.addEventListener('DOMContentLoaded', () => Admin.init());
+</script>
+</body>
+</html>
